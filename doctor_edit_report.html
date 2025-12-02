@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Edit Report</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/client.js"></script>
+  <style>
+    #back {
+      width: auto;
+      padding: 8px 60px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header><h2>Edit Report</h2><button id="back">Back</button></header>
+    <form id="editForm">
+      <p id="meta"></p>
+      <label>Date</label>
+      <input type="date" name="date">
+      <label>Diagnosis</label>
+      <input name="diagnosis">
+      <label>Notes</label>
+      <textarea name="notes"></textarea>
+      <button type="submit">Save</button>
+      <button type="button" id="delete">Delete</button>
+      <p id="err" class="err"></p>
+    </form>
+  </div>
+
+<script>
+document.getElementById("back").addEventListener("click", () => window.location = "/doctor_dashboard.html");
+
+function getParam(name){
+  return new URLSearchParams(window.location.search).get(name);
+}
+
+async function init() {
+  const s = await checkSession();
+  if (!s.loggedIn || s.user.role !== "doctor") return window.location = "/physician_login.html";
+
+  const id = getParam("id");
+  if (!id) return window.location = "/doctor_dashboard.html";
+
+  // fetch one report by filtering the doctor's reports
+  const res = await api("/api/doctor/reports");
+  const r = (res.reports || []).find(rr => String(rr.id) === String(id));
+  if (!r) { document.getElementById("err").textContent = "Report not found"; return; }
+
+  document.getElementById("meta").textContent = `Patient: ${r.patient_name || r.patient_username} | Current Doctor: ${r.doctor_name || r.doctor_username}`;
+  const f = document.getElementById("editForm");
+  f.date.value = r.date || "";
+  f.diagnosis.value = r.diagnosis || "";
+  f.notes.value = r.notes || "";
+
+  f.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = { date: f.date.value, diagnosis: f.diagnosis.value, notes: f.notes.value };
+    const response = await fetch(`/api/doctor/report/${id}`, {
+      method: "PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const j = await response.json();
+    if (j.ok) window.location = "/doctor_dashboard.html";
+    else document.getElementById("err").textContent = "Error saving";
+  });
+
+  document.getElementById("delete").addEventListener("click", async () => {
+    if (!confirm("Delete this report?")) return;
+    await fetch(`/api/doctor/report/${id}`, { method: "DELETE" });
+    window.location = "/doctor_dashboard.html";
+  });
+}
+
+init();
+</script>
+</body>
+</html>

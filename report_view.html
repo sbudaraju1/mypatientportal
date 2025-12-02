@@ -1,0 +1,307 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>View Report</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/client.js"></script>
+  <style>
+    body {
+      background-image: url('/blue_background.jpg');
+      background-size: cover;
+      background-position: center;
+    }
+    #back {
+      width: auto;
+      padding: 8px 16px;
+    }
+    .report-container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .report-header {
+      border-bottom: 3px solid #2196F3;
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+    .report-header h2 {
+      color: #2196F3;
+      margin: 0 0 10px 0;
+    }
+    .report-meta {
+      color: #666;
+      font-size: 14px;
+    }
+    .info-section {
+      margin: 25px 0;
+      padding: 20px;
+      background: #f9f9f9;
+      border-left: 4px solid #4CAF50;
+      border-radius: 4px;
+    }
+    .info-section h3 {
+      margin-top: 0;
+      color: #333;
+      font-size: 18px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .info-item {
+      padding: 10px;
+      background: white;
+      border-radius: 4px;
+    }
+    .info-label {
+      font-weight: bold;
+      color: #555;
+      font-size: 13px;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .info-value {
+      color: #333;
+      font-size: 15px;
+    }
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    .notes-section {
+      margin: 25px 0;
+      padding: 20px;
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      border-radius: 4px;
+    }
+    .diagnosis-section {
+      margin: 25px 0;
+      padding: 20px;
+      background: #e8f5e9;
+      border-left: 4px solid #4CAF50;
+      border-radius: 4px;
+    }
+    .action-buttons {
+      margin-top: 30px;
+      display: flex;
+      gap: 10px;
+    }
+    .btn-export {
+      background-color: #FF9800;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-export:hover {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h2>Health Report Details</h2>
+      <div>
+        <button id="back" onclick="goBack()">Back</button>
+      </div>
+    </header>
+    
+    <div class="report-container" id="reportContainer">
+      <div class="report-header">
+        <h2>Health Report #<span id="reportId"></span></h2>
+        <div class="report-meta">
+          <strong>Report Date:</strong> <span id="reportDate"></span> | 
+          <strong>Generated:</strong> <span id="generatedDate"></span>
+        </div>
+      </div>
+
+      <!-- Patient Information -->
+      <div class="info-section">
+        <h3>Patient Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Name</span>
+            <span class="info-value" id="patientName"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Date of Birth</span>
+            <span class="info-value" id="patientDob"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Email</span>
+            <span class="info-value" id="patientEmail"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Phone</span>
+            <span class="info-value" id="patientPhone"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vital Signs -->
+      <div class="info-section">
+        <h3>Vital Signs</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Weight</span>
+            <span class="info-value" id="weight"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Height</span>
+            <span class="info-value" id="height"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Blood Pressure</span>
+            <span class="info-value" id="bloodPressure"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Heart Rate</span>
+            <span class="info-value" id="heartRate"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Temperature</span>
+            <span class="info-value" id="temperature"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Oxygen Level</span>
+            <span class="info-value" id="oxygen"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diagnosis -->
+      <div class="diagnosis-section">
+        <h3>Diagnosis</h3>
+        <p id="diagnosis" style="font-size: 15px; line-height: 1.6;"></p>
+      </div>
+
+      <!-- Notes -->
+      <div class="notes-section">
+        <h3>Clinical Notes</h3>
+        <p id="notes" style="font-size: 15px; line-height: 1.6;"></p>
+      </div>
+
+      <!-- Doctor Information -->
+      <div class="info-section">
+        <h3>Attending Physician</h3>
+        <div class="info-item">
+          <span class="info-label">Doctor</span>
+          <span class="info-value" id="doctorName"></span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button class="btn-export" onclick="exportPDF()">📄 Export as PDF</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+window.addEventListener('DOMContentLoaded', init);
+
+let currentReportId = null;
+let userRole = null;
+
+async function init() {
+  try {
+    console.log("Report view init started");
+    
+    const session = await checkSession();
+    if (!session.loggedIn) {
+      return window.location = "/login_page.html";
+    }
+    
+    userRole = session.user.role;
+    
+    // Get report ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    currentReportId = urlParams.get('id');
+    
+    if (!currentReportId) {
+      alert("No report ID provided");
+      goBack();
+      return;
+    }
+    
+    // Fetch report details
+    await loadReport(currentReportId);
+    
+  } catch (error) {
+    console.error("Report view error:", error);
+  }
+}
+
+async function loadReport(reportId) {
+  try {
+    // Determine which endpoint to use based on user role
+    const endpoint = userRole === "doctor" 
+      ? `/api/doctor/report/${reportId}`
+      : `/api/patient/report/${reportId}`;
+    
+    const res = await fetch(endpoint);
+    const data = await res.json();
+    
+    if (!data.report) {
+      alert("Report not found");
+      goBack();
+      return;
+    }
+    
+    const r = data.report;
+    console.log("Report data:", r);
+    
+    // Populate report details
+    document.getElementById("reportId").textContent = r.id || "N/A";
+    document.getElementById("reportDate").textContent = r.date || "N/A";
+    document.getElementById("generatedDate").textContent = new Date().toLocaleDateString();
+    
+    // Patient info
+    document.getElementById("patientName").textContent = r.patient_name || r.patient_username || "N/A";
+    document.getElementById("patientDob").textContent = r.birthday || "N/A";
+    document.getElementById("patientEmail").textContent = r.email || "N/A";
+    document.getElementById("patientPhone").textContent = r.phone || "N/A";
+    
+    // Vital signs
+    document.getElementById("weight").textContent = r.weight || "Not recorded";
+    document.getElementById("height").textContent = r.height || "Not recorded";
+    document.getElementById("bloodPressure").textContent = r.blood_pressure || "Not recorded";
+    document.getElementById("heartRate").textContent = r.heart_rate || "Not recorded";
+    document.getElementById("temperature").textContent = r.temperature || "Not recorded";
+    document.getElementById("oxygen").textContent = r.oxygen || "Not recorded";
+    
+    // Diagnosis and notes
+    document.getElementById("diagnosis").textContent = r.diagnosis || "No diagnosis provided";
+    document.getElementById("notes").textContent = r.notes || "No notes provided";
+    
+    // Doctor info
+    document.getElementById("doctorName").textContent = r.doctor_name || r.doctor_username || "N/A";
+    
+  } catch (error) {
+    console.error("Error loading report:", error);
+    alert("Failed to load report");
+    goBack();
+  }
+}
+
+function goBack() {
+  if (userRole === "doctor") {
+    window.location.href = "/doctor_dashboard.html";
+  } else {
+    window.location.href = "/patient_home.html";
+  }
+}
+
+function exportPDF() {
+  window.location.href = `/api/report/pdf/${currentReportId}`;
+}
+</script>
+</body>
+</html>
