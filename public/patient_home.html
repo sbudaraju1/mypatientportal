@@ -64,7 +64,7 @@ async function init() {
     console.log("Session:", session);
     
     if (!session.loggedIn || session.user.role !== "patient") {
-      window.location = "/index.html";
+      window.location = "/login_page.html";
       return;
     }
     
@@ -120,3 +120,4 @@ function exportPDF(reportId) {
 </body>
 
 </html>
+
