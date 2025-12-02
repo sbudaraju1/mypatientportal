@@ -1,0 +1,284 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Doctor Dashboard</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/client.js"></script>
+  <style>
+    input, input:focus, input::placeholder {
+	  color:black !important;
+	}
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+	  justify-content: space-between
+	  width: 100%;
+    }
+    .search-bar input {
+      flex: 3 1 0%;
+	  padding: 10px;
+	  width: 600px;
+	  max-width: 800px;
+	  mix-width: 400px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+      background-color: white !important;
+      color: black !important;
+      -webkit-text-fill-color: black !important;
+	  caret-color: black !important;
+    }
+    .search-bar input::placeholder {
+      color: #888 !important;
+      opacity: 0.6 !important;
+    }
+    .search-bar input:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+    .search-bar select {
+      flex: 1 1 120px;
+	  padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+      background-color: white;
+      color: #333;
+    }
+    .search-bar button {
+      flex: 0 1 100px;
+	  padding: 10px 20px;
+	  font-size: 12px;
+    }
+    .no-results {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-style: italic;
+    }
+    .results-count {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .btn-export {
+      background-color: #FF9800;
+      color: white;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      margin-right: 5px;
+    }
+    .btn-export:hover {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h2>Doctor Dashboard</h2>
+      <div>
+	  	<a href="/doctor_create_patient.html">
+			<button>New Patient</button>
+		</a>
+	    <a href="/doctor_create_report.html">
+			<button>Create Patient Report</button>
+		</a>
+		<a href="/doctor_upload_document.html">
+			<button>Upload Document</button>
+		</a>
+        <a href="/logout">
+			<button>Logout</button>
+		</a>
+      </div>
+    </header>
+
+    <section>
+      <h3>All Reports</h3>
+	  
+      <!-- Search/Filter Bar -->
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search by patient name, diagnosis, or doctor...">
+        <select id="filterType">
+          <option value="all">All Reports</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+        </select>
+        <button onclick="clearSearch()">Clear</button>
+      </div>
+      
+      <div class="results-count" id="resultsCount"></div>
+      
+      <table class="table" id="reportTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Patient</th>
+            <th>Date</th>
+            <th>Diagnosis</th>
+            <th>Doctor</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+<script>
+window.addEventListener('DOMContentLoaded', init);
+
+let allReports = []; // Store all reports for filtering
+
+async function init() {
+  try {
+    console.log("Dashboard init started");
+    
+    const s = await checkSession();
+    console.log("Session check result:", s);
+    
+    if (!s.loggedIn || s.user.role !== "doctor") {
+        console.log("Redirecting due to auth failure");
+        return window.location = "/physician_login.html";
+    }
+    
+    console.log("Fetching reports...");
+    const data = await api("/api/doctor/reports");
+    console.log("Reports data:", data);
+    
+    allReports = data.reports || [];
+    
+    // Display all reports initially
+    displayReports(allReports);
+    
+    // Add search listener
+    document.getElementById("searchInput").addEventListener("input", filterReports);
+    document.getElementById("filterType").addEventListener("change", filterReports);
+    
+  } catch (error) {
+    console.error("Dashboard error:", error);
+  }
+}
+
+function displayReports(reports) {
+  const tbody = document.querySelector("#reportTable tbody");
+  tbody.innerHTML = "";
+  
+  if (reports.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="no-results">No reports found</td></tr>';
+    document.getElementById("resultsCount").textContent = "";
+    return;
+  }
+  
+  // Update results count
+  document.getElementById("resultsCount").textContent = `Showing ${reports.length} report${reports.length !== 1 ? 's' : ''}`;
+  
+  reports.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.id}</td>
+      <td>${r.patient_name || r.patient_username || "unknown"}</td>
+      <td>${r.date || ""}</td>
+      <td>${r.diagnosis || ""}</td>
+      <td>${r.doctor_name || r.doctor_username || ""}</td>
+      <td>
+        <button class="btn-export" onclick="exportPDF(${r.id})">Export PDF</button>
+		<button class="btn-view" data-id="${r.id}">View Full Report</button>
+        <button class="edit" data-id="${r.id}">Edit</button>
+        <button class="del" data-id="${r.id}">Delete</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  
+  console.log(`✓ Displayed ${reports.length} reports`);
+  
+  // Edit buttons
+  document.querySelectorAll(".edit").forEach(b =>
+      b.addEventListener("click", (e) => {
+          window.location.href = `doctor_edit_report.html?id=${e.target.dataset.id}`;
+      })
+  );
+  
+  // Delete buttons
+  document.querySelectorAll(".del").forEach(b =>
+      b.addEventListener("click", async (e) => {
+          if (!confirm("Delete this report?")) return;
+          const id = e.target.dataset.id;
+          await fetch(`/api/doctor/report/${id}`, { method: "DELETE" });
+          window.location.reload();
+      })
+  );
+  
+  document.querySelectorAll(".btn-view").forEach(b =>
+	  b.addEventListener("click", e => {
+		const reportId = e.target.dataset.id;
+		window.location.href = `/report_view.html?id=${reportId}`;
+	  })
+  );
+
+}
+
+function filterReports() {
+  const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+  const filterType = document.getElementById("filterType").value;
+  
+  let filtered = allReports;
+  
+  // Apply text search
+  if (searchTerm) {
+    filtered = filtered.filter(r => {
+      const patientName = (r.patient_name || r.patient_username || "").toLowerCase();
+      const diagnosis = (r.diagnosis || "").toLowerCase();
+      const doctorName = (r.doctor_name || r.doctor_username || "").toLowerCase();
+      
+      return patientName.includes(searchTerm) || 
+             diagnosis.includes(searchTerm) || 
+             doctorName.includes(searchTerm);
+    });
+  }
+  
+  // Apply date filter
+  if (filterType !== "all") {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    filtered = filtered.filter(r => {
+      if (!r.date) return false;
+      const reportDate = new Date(r.date);
+      
+      if (filterType === "today") {
+        return reportDate.toDateString() === today.toDateString();
+      } else if (filterType === "week") {
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return reportDate >= weekAgo;
+      } else if (filterType === "month") {
+        const monthAgo = new Date(today);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        return reportDate >= monthAgo;
+      }
+      return true;
+    });
+  }
+  
+  displayReports(filtered);
+}
+
+function clearSearch() {
+  document.getElementById("searchInput").value = "";
+  document.getElementById("filterType").value = "all";
+  displayReports(allReports);
+}
+
+function exportPDF(reportId) {
+  console.log("Exporting report", reportId, "as PDF");
+  window.location.href = `/api/report/pdf/${reportId}`;
+}
+</script>
+</body>
+</html>

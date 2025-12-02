@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Create Report</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/client.js"></script>
+  <style>
+    #back {
+      width: auto;
+      padding: 8px 60px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header><h2>Create Report</h2>
+		<a href="/doctor_dashboard.html">
+			<button id="back">Back</button>
+		</a>
+	</header>
+    <form id="createForm">
+      <label>Patient</label>
+      <select name="patient_id" required id="patientSelect">
+        <option value="">Select a patient...</option>
+      </select>
+      <label>Date</label>
+      <input type="date" name="date" placeholder="YYYY-MM-DD">
+      <label>Weight</label>
+      <input name="weight" placeholder="e.g. 150 lbs">
+      <label>Height</label>
+      <input name="height" placeholder="e.g. 5'6">
+	  <label>Blood Pressure</label>
+      <input name="blood_pressure" placeholder="e.g. 120/80">
+      <label>Heart Rate</label>
+      <input name="heart_rate" placeholder="e.g. 70 bpm">
+      <label>Temperature</label>
+      <input name="temperature" placeholder="e.g. 98.7F">
+      <label>Oxygen</label>
+      <input name="oxygen" placeholder="e.g. 98%">	  
+      <label>Diagnosis</label>
+      <input name="diagnosis">
+      <label>Notes</label>
+      <textarea name="notes"></textarea>
+      <button type="submit">Create</button>
+      <p id="err" class="err"></p>
+    </form>
+  </div>
+<script>
+// Wait for both DOM and client.js to load
+window.addEventListener('DOMContentLoaded', init);
+
+async function init() {
+  console.log("Init started");
+  
+  const s = await checkSession();
+  if (!s.loggedIn || s.user.role !== "doctor") {
+    return window.location = "/physician_login.html";
+  }
+  
+  // Fetch and populate patients
+  console.log("Fetching patients...");
+  try {
+    const patientsRes = await api("/api/doctor/patients");
+    console.log("Patients response:", patientsRes);
+    console.log("Number of patients:", patientsRes.patients ? patientsRes.patients.length : 0);
+    
+    const sel = document.getElementById("patientSelect");
+    console.log("Dropdown element found:", sel);
+    
+    if (patientsRes.patients && patientsRes.patients.length > 0) {
+      patientsRes.patients.forEach(p => {
+        console.log("Adding patient to dropdown:", p);
+        const o = document.createElement("option");
+        o.value = p.id;
+        o.textContent = `${p.name || p.username} (${p.username})`;
+        sel.appendChild(o);
+      });
+      console.log(`✓ Added ${patientsRes.patients.length} patients to dropdown`);
+    } else {
+      console.log("⚠ No patients found in response");
+      const o = document.createElement("option");
+      o.value = "";
+      o.textContent = "No patients available";
+      sel.appendChild(o);
+    }
+  } catch (error) {
+    console.error("Error fetching patients:", error);
+  }
+  
+  // Set up form submission
+  document.getElementById("createForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const payload = {
+      patient_id: f.patient_id.value,
+      date: f.date.value || new Date().toISOString().slice(0,10),
+      diagnosis: f.diagnosis.value,
+      notes: f.notes.value,
+	  weight: f.weight.value,
+      height: f.height.value,
+      blood_pressure: f.blood_pressure.value,
+      heart_rate: f.heart_rate.value,
+      temperature: f.temperature.value,
+      oxygen: f.oxygen.value
+    };
+    
+    console.log("Submitting report:", payload);
+    
+    const res = await fetch("/api/doctor/report", {
+	  method: "POST",
+	  headers: {"Content-Type":"application/json"},
+	  body: JSON.stringify(payload)
+	});
+	const j = await res.json();
+
+	console.log("Server responded:", j);  // <-- Use this instead
+
+	if (j.ok) {
+	  alert("Report created successfully!");
+      window.location = "/doctor_dashboard.html";
+    } else {
+      document.getElementById("err").textContent = j.error || "Error creating report";
+    }
+  });
+}
+
+</script>
+</body>
+</html>

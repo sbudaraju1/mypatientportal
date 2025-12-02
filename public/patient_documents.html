@@ -1,0 +1,300 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>My Documents</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/client.js"></script>
+  <style>
+    body {
+      background-image: url('/blue_background.jpg');
+      background-size: cover;
+      background-position: center;
+    }
+    #back {
+      width: auto;
+      padding: 8px 16px;
+    }
+    .upload-section {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .upload-section h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      margin: 10px 0;
+    }
+    .file-input-wrapper input[type=file] {
+      font-size: 100px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .file-input-wrapper .btn-file-input {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 4px;
+      display: inline-block;
+      cursor: pointer;
+    }
+    .file-name {
+      margin-left: 10px;
+      font-style: italic;
+      color: #666;
+    }
+    .documents-list {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .document-item {
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .document-info {
+      flex: 1;
+    }
+    .document-info h4 {
+      margin: 0 0 5px 0;
+      color: #333;
+    }
+    .document-meta {
+      font-size: 12px;
+      color: #666;
+    }
+    .document-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .document-actions button {
+      width: auto;
+      padding: 8px 16px;
+    }
+    .btn-download {
+      background-color: #2196F3;
+      color: white;
+    }
+    .btn-delete {
+      background-color: #f44336;
+      color: white;
+    }
+    .file-icon {
+      font-size: 24px;
+      margin-right: 15px;
+    }
+    #success {
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h2>My Documents</h2>
+      <a href="/patient_home.html">
+        <button id="back">Back to Home</button>
+      </a>
+    </header>
+    
+    <!-- Upload Section -->
+    <div class="upload-section">
+      <h3>Upload New Document</h3>
+      <form id="uploadForm">
+        <label>Select File (Images, PDFs, Word docs - Max 10MB)</label><br>
+        <div class="file-input-wrapper">
+          <span class="btn-file-input">Choose File</span>
+          <input type="file" name="document" id="fileInput" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" required>
+        </div>
+        <span class="file-name" id="fileName">No file chosen</span><br><br>
+        
+        <label>Description (Optional)</label>
+        <textarea name="description" rows="3" placeholder="Please Upload All Medical History."></textarea>
+        
+        <button type="submit">Upload Document</button>
+        <p id="err" class="err"></p>
+        <p id="success"></p>
+      </form>
+    </div>
+    
+    <!-- Documents List -->
+    <div class="documents-list">
+      <h3>My Uploaded Documents</h3>
+      <div id="documentsList"></div>
+    </div>
+  </div>
+
+<script>
+window.addEventListener('DOMContentLoaded', init);
+
+async function init() {
+  try {
+    console.log("Documents page init started");
+    
+    const s = await checkSession();
+    if (!s.loggedIn || s.user.role !== "patient") {
+      return window.location = "/login_page.html";
+    }
+    
+    // Show selected file name
+    document.getElementById("fileInput").addEventListener("change", (e) => {
+      const fileName = e.target.files[0]?.name || "No file chosen";
+      document.getElementById("fileName").textContent = fileName;
+    });
+    
+    // Handle file upload
+    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      document.getElementById("err").textContent = "";
+      document.getElementById("success").textContent = "";
+      
+      const formData = new FormData();
+      const fileInput = document.getElementById("fileInput");
+      const description = e.target.description.value;
+      
+      if (!fileInput.files[0]) {
+        document.getElementById("err").textContent = "Please select a file";
+        return;
+      }
+      
+      formData.append("document", fileInput.files[0]);
+      formData.append("description", description);
+      
+      try {
+        const res = await fetch("/api/documents/upload", {
+          method: "POST",
+          body: formData
+        });
+        
+        const result = await res.json();
+        
+        if (result.ok) {
+          document.getElementById("success").textContent = "✓ Document uploaded successfully!";
+          e.target.reset();
+          document.getElementById("fileName").textContent = "No file chosen";
+          // Refresh documents list
+          loadDocuments();
+        } else {
+          document.getElementById("err").textContent = result.error || "Failed to upload document";
+        }
+      } catch (error) {
+        console.error("Upload error:", error);
+        document.getElementById("err").textContent = "Network error. Please try again.";
+      }
+    });
+    
+    // Load documents
+    loadDocuments();
+    
+  } catch (error) {
+    console.error("Documents page error:", error);
+  }
+}
+
+async function loadDocuments() {
+  try {
+    const data = await api("/api/patient/documents");
+    console.log("Documents:", data);
+    
+    const container = document.getElementById("documentsList");
+    
+    if (!data.documents || data.documents.length === 0) {
+      container.innerHTML = '<p style="text-align: center; color: #666;">No documents uploaded yet</p>';
+      return;
+    }
+    
+    container.innerHTML = "";
+    
+    data.documents.forEach(doc => {
+      const item = document.createElement("div");
+      item.className = "document-item";
+      
+      const fileIcon = getFileIcon(doc.file_type);
+      const fileSize = formatFileSize(doc.file_size);
+      const uploadedBy = doc.uploaded_by_name || doc.uploaded_by_username || "Unknown";
+      const uploadedByRole = doc.uploaded_by_role === "doctor" ? "👨‍⚕️ Doctor" : "Patient";
+      
+      item.innerHTML = `
+        <span class="file-icon">${fileIcon}</span>
+        <div class="document-info">
+          <h4>${doc.original_name}</h4>
+          <p>${doc.description || "No description"}</p>
+          <div class="document-meta">
+            Uploaded: ${doc.upload_date} | Size: ${fileSize} | By: ${uploadedBy} (${uploadedByRole})
+          </div>
+        </div>
+        <div class="document-actions">
+          <button class="btn-download" onclick="downloadDocument(${doc.id}, '${doc.original_name}')">Download</button>
+          ${doc.uploaded_by_role !== "doctor" ? `<button class="btn-delete" onclick="deleteDocument(${doc.id})">Delete</button>` : ''}
+        </div>
+      `;
+      
+      container.appendChild(item);
+    });
+    
+  } catch (error) {
+    console.error("Error loading documents:", error);
+  }
+}
+
+function getFileIcon(fileType) {
+  if (fileType.includes("pdf")) return "📄";
+  if (fileType.includes("image")) return "🖼️";
+  if (fileType.includes("word") || fileType.includes("document")) return "📝";
+  return "📎";
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+async function downloadDocument(id, filename) {
+  try {
+    window.location.href = `/api/documents/download/${id}`;
+  } catch (error) {
+    console.error("Download error:", error);
+    alert("Failed to download document");
+  }
+}
+
+async function deleteDocument(id) {
+  if (!confirm("Are you sure you want to delete this document?")) return;
+  
+  try {
+    const res = await fetch(`/api/documents/${id}`, {
+      method: "DELETE"
+    });
+    
+    const result = await res.json();
+    
+    if (result.ok) {
+      loadDocuments(); // Refresh list
+    } else {
+      alert(result.error || "Failed to delete document");
+    }
+  } catch (error) {
+    console.error("Delete error:", error);
+    alert("Network error. Please try again.");
+  }
+}
+</script>
+</body>
+</html>
