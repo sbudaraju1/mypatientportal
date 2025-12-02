@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Login</title>
+	<style>
+		body { /* Or the parent container of the box */
+		  display: flex;
+		  justify-content: center; /* Centers horizontally */
+		  align-items: center; /* Centers vertically */
+		  min-height: 100vh; /* Ensures the body takes full viewport height for vertical centering */
+		  background-image: url('/blue_background.jpg');
+		  background-size: cover;
+		  background-position: center;
+		}
+		button {
+          padding: 7px 50px;     /* bigger padding = bigger button */
+          font-size: 13px;        /* text size*/
+          border: none;
+          border-radius: 3px;
+          cursor: pointer;
+          margin-top: 10px;
+		}
+		button:hover {
+			opacity: 0.8;
+		}
+		.err {
+			color: red;
+			margin-top: 10px;
+		}
+	</style>
+</head>
+<body>
+	<font color=darkblue size=6 face="Georgia"> MyPatientPortal </font>
+	<ul>
+	<p>
+		<font color=darkblue size=3 face="Georgia">
+		Welcome to my patient portal!
+		<br>
+		Login here to access your health information.
+	</p>
+	
+	<h2>Patient Login</h2><br>
+	<form id="loginForm">
+	  <label>Username:</label>
+	  <input type="text" name="username" required>
+	  <br> <br>
+	  <label>Password:</label>
+	  <input type="password" name="password" required>
+	  <br>
+	  <button type="submit">Login</button>
+	  <p id="err" class="err"></p>
+	</form>
+	<p>Don't have an account? <a href="signup.html">Sign up here</a><br>
+	<br>Physician? <a href="physician_login.html">Login Here</a></p>
+
+<script>
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  
+  const username = e.target.username.value;
+  const password = e.target.password.value;
+  
+  try {
+    const res = await fetch("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    
+    const data = await res.json();
+    
+    if (data.ok) {
+      window.location.href = "/patient_home.html";
+    } else {
+      document.getElementById("err").textContent = data.error || "Login failed";
+    }
+  } catch (error) {
+    document.getElementById("err").textContent = "Invalid Username and/or Password";
+  }
+});
+</script>
+</body>
+</html>
