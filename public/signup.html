@@ -27,7 +27,7 @@
       <button type="submit">Sign Up</button>
       <p id="err" class="err"></p>
     </form>
-    <a href="login_page.html">Back to Login</a><br>
+    <a href="index.html">Back to Login</a><br>
   </div>
 <script>
 document.getElementById("signupForm").addEventListener("submit", async (e) => {
@@ -52,7 +52,7 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
     
     if (data.ok) {
       alert("Signup complete. Please log in.");
-      window.location = "/login_page.html";
+      window.location = "/index.html";
     } else {
       document.getElementById("err").textContent = data.error || "Error creating account";
     }
@@ -62,4 +62,5 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
 });
 </script>
 </body>
+
 </html>
